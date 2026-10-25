@@ -1,0 +1,4 @@
+schema: agister.process/v1alpha1
+extends: review
+prompt: code-review-tests
+guidance: [go-testing-seams]

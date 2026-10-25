@@ -1,0 +1,49 @@
+schema: agister.process/v1alpha1
+prompt: implement
+guidance: [go-testing-seams, go-architecture]
+instruction: Implement the task given as input brief, as input prompt says.
+
+params:
+  candidate: {default: HEAD}
+  brief: {}
+inputs:
+  candidate_revision: {source: git.revision, rev: {from: params.candidate}}
+  brief: {source: file, path: {from: params.brief}, form: [goal, step]}
+
+workspace:
+  access: read-write
+  revision: {from: inputs.candidate_revision}
+  clean: true
+
+permissions:
+  require:
+    - repository.read
+    - repository.write
+    - process.execute
+  allow:
+    - repository.read
+    - repository.search
+    - repository.diff
+    - repository.history.read
+    - repository.write
+    - repository.history.write
+    - process.execute
+    - network
+    - host.read
+    - host.write
+
+limits:
+  time: 45m
+  stale:
+    no_event: 21m
+    tool_command: 15m
+    repeated_tool_calls: 5
+
+recovery:
+  resumes: 1
+  instruction: >-
+    Your last turn was ended: it stopped making progress, as said below.
+    Its work is in the worktree. Go on with the task another way.
+
+output:
+  schema: implementation

@@ -1,0 +1,27 @@
+schema: agister.process/v1alpha1
+prompt: code-review-judge
+instruction: >-
+  Rule on the review findings given as input reviews, following the prompt
+  given as input prompt. Each review is numbered by its place in
+  reviews, from 1. They are all you have: rule on the evidence each
+  finding presents.
+
+params:
+  reviews: {}
+inputs:
+  reviews: {source: param, name: reviews}
+
+workspace:
+  access: read-only
+
+permissions:
+  require: []
+  allow: []
+
+limits:
+  time: 10m
+  stale:
+    no_event: 3m
+
+output:
+  schema: judgement

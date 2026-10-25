@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agister's settings architecture</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --ground:#08080A; --surface:#17171A; --surface-2:#1E1E22;
+    --line:#2A2A2F; --line-soft:#232327; --line-strong:#3C3C43;
+    --text:#F5F5F7; --text-dim:#8A8A96; --text-faint:#68686F;
+    --text-body:#D9D9DF; --text-sub:#B4B4C0;
+    --workflow:#F28DB0; --step:#C8A2FF; --process:#8DB8FF; --agent:#5FE0BC;
+    --runtime:#FFC24D; --run:#F5E6B0; --rule:#FF8F6B;
+    --display:"Iowan Old Style","Palatino Linotype",Palatino,"Hoefler Text",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",system-ui,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--ground); color: var(--text-body); overflow-wrap: break-word;
+    font: 16px/1.65 var(--sans); -webkit-text-size-adjust: 100%;
+  }
+  .page { max-width: 75rem; margin: 0 auto; padding: 56px 32px 72px; }
+  header { padding-bottom: 32px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    margin: 0 0 16px; font-family: var(--mono); font-size: .75rem;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--text-faint);
+  }
+  h1, h2 { font-family: var(--display); font-weight: 400; color: var(--text); }
+  h1 { margin: 0 0 16px; font-size: clamp(2.2rem, 5vw, 3.25rem); line-height: 1.05; letter-spacing: -.01em; }
+  .lede { max-width: 47.5rem; margin: 0; font-size: 1.19rem; line-height: 1.55; }
+  .body { display: grid; grid-template-columns: 12.5rem minmax(0, 1fr); gap: 56px; padding-top: 40px; }
+  nav { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 10px; padding-top: 6px; font-size: .875rem; }
+  nav .label { font-family: var(--mono); font-size: .69rem; letter-spacing: .16em; color: var(--text-faint); }
+  nav a { color: var(--text-dim); text-decoration: none; }
+  nav a:hover { color: var(--text); }
+  section { padding-top: 28px; }
+  section:first-child { padding-top: 0; }
+  h2 { margin: 0 0 16px; font-size: 1.75rem; line-height: 1.25; scroll-margin-top: 24px; }
+  p { margin: 0 0 16px; }
+  a { color: var(--text-dim); text-underline-offset: 3px; }
+  code {
+    font-family: var(--mono); font-size: .85em; padding: 1px 5px; border-radius: 2px;
+    background: var(--surface); border: 1px solid var(--line-soft);
+  }
+  figure { margin: 0 0 20px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  figcaption { margin-top: 14px; font-size: .875rem; color: var(--text-dim); }
+  svg { display: block; width: 100%; height: auto; }
+  svg text { font-family: var(--sans); font-size: 14px; fill: var(--text); }
+  svg .sub { font-size: 11px; fill: var(--text-dim); }
+  svg .label { font-size: 12px; fill: var(--text-dim); }
+  svg .box { fill: var(--surface-2); stroke-width: 1.5; }
+  svg .edge { stroke: var(--line-strong); stroke-width: 1.5; fill: none; stroke-linejoin: round; marker-end: url(#arrow); }
+  .callout { margin: 0 0 16px; padding: 14px 18px; background: #F28DB012; border-left: 2px solid var(--workflow); color: var(--text); }
+  .k-workflow { color: var(--workflow); } .k-step { color: var(--step); } .k-process { color: var(--process); }
+  .k-agent { color: var(--agent); } .k-runtime { color: var(--runtime); } .k-run { color: var(--run); }
+  .k-plain { color: var(--text-sub); } .k-rule { color: var(--rule); }
+  .axes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; margin: 0 0 16px; }
+  .axis { padding: 16px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: 6px; font-size: .81rem; line-height: 1.5; color: var(--text-sub); }
+  .axis h3 { margin: 0; font: 400 .69rem var(--mono); letter-spacing: .16em; color: var(--text-dim); }
+  .axis .where { margin: 6px 0 10px; color: var(--text-faint); }
+  .axis dl { margin: 0; }
+  .axis dt { margin-top: 10px; font: .81rem var(--mono); }
+  .axis dd { margin: 2px 0 0; }
+  .keyed { margin: 0 0 16px; font-size: .875rem; line-height: 1.55; }
+  .keyed div { display: grid; grid-template-columns: var(--key, 11.25rem) minmax(0, 1fr); gap: 16px; padding: 8px 0; border-top: 1px solid var(--line-soft); color: var(--text-sub); }
+  .keyed b { font: 400 .81rem/1.7 var(--mono); }
+  .keyed.files span { font: .81rem/1.7 var(--mono); }
+  .layers { display: grid; grid-template-columns: minmax(0, 1fr) 13.75rem; gap: 24px; margin: 0 0 16px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  .layers ol { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .layers li { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 16px; align-items: center; padding: 12px 16px; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 5px; font-size: .875rem; color: var(--text); }
+  .layers li span { font: .81rem/1.5 var(--mono); color: var(--text-sub); }
+  .layers ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 4px 0 4px 16px; list-style: none; border-left: 1.5px solid var(--line-strong); font-size: .81rem; line-height: 1.55; color: var(--text-dim); }
+  .refusals { --key: 9.4rem; }
+  .parts .head, .parts .row { display: grid; grid-template-columns: 10.6rem minmax(0, 1fr) 12.5rem; gap: 24px; }
+  .parts .head { padding-bottom: 8px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: .69rem; letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); }
+  .parts .row { padding: 10px 0; border-bottom: 1px solid var(--line-soft); font-size: .875rem; line-height: 1.55; }
+  .parts .pkg { font: .81rem/1.9 var(--mono); color: var(--text); }
+  .parts .out { color: var(--text-dim); }
+  .parts { margin: 0 0 16px; }
+  @media (max-width: 56rem) {
+    .page { padding: 40px 16px 48px; }
+    .body { display: block; padding-top: 24px; }
+    nav { display: none; }
+    .axes, .layers { grid-template-columns: 1fr; }
+    .keyed div, .layers li, .parts .row { grid-template-columns: 1fr; gap: 4px; }
+    .parts .head { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<p class="eyebrow">Agister · settings</p>
+<h1>Agister's settings architecture</h1>
+<p class="lede">Settings define the work; runs and calls are what executed it.
+Agister reads settings from up to three layers, composes each document field by
+field, and resolves a request into definitions that core executes as a run, or
+into a refusal that names the chain at fault. Definitions live in settings, not
+in code; code adds only a runtime or a kind of input source.</p>
+</header>
+
+<div class="body">
+<nav aria-label="On this page">
+  <span class="label">ON THIS PAGE</span>
+  <a href="#axes">Three axes</a>
+  <a href="#names">What a workflow names</a>
+  <a href="#where">Where settings live</a>
+  <a href="#resolve">From files to definitions</a>
+  <a href="#parts">The parts</a>
+  <a href="#run">What a run does with them</a>
+  <a href="../run-architecture/index.html">Run architecture ↗</a>
+</nav>
+
+<main>
+<section>
+<h2 id="axes">Three axes</h2>
+<p>Each thing has one name, on one axis. A definition is declared, resolved and
+planned; it never runs. An execution starts and ends; it is never declared.</p>
+<div class="axes">
+  <div class="axis">
+    <h3>DEFINITIONS</h3>
+    <p class="where">in settings</p>
+    <dl>
+      <dt class="k-workflow">workflow</dt><dd>work defined by inputs, an output contract and children, each a step or a workflow, composed by sequence, parallel, branch or bounded repetition; its bindings carry data into each child, and its conditions choose a branch, accept a result and end a repetition</dd>
+      <dt class="k-step">step</dt><dd>a process bound to an agent, the one leaf; its inputs and output contract are its process's</dd>
+      <dt class="k-process">process</dt><dd>what a step does: its prompt, inputs, environment, output schema, permissions and limits</dd>
+      <dt class="k-agent">agent</dt><dd>who does it: a runtime mapping, and the model, effort and skills its runtime takes; a bash agent names only the runtime</dd>
+      <dt class="k-runtime">runtime mapping</dt><dd>what its runtime grants with no option, and its options with what each grants; bash offers none</dd>
+    </dl>
+  </div>
+  <div class="axis">
+    <h3>EXECUTIONS</h3>
+    <p class="where">in records; each names the definition it executes</p>
+    <dl>
+      <dt class="k-run">run</dt><dd>executes a workflow</dd>
+      <dt class="k-run">call</dt><dd>executes a step</dd>
+      <dt class="k-plain">iteration</dt><dd>one execution of a repetition's body; every other child executes once, as a call or a run</dd>
+      <dt class="k-plain">turn</dt><dd>one exchange of a call with its runtime</dd>
+      <dt class="k-plain">session</dt><dd>the conversation a call held, on a runtime that keeps one</dd>
+    </dl>
+  </div>
+  <div class="axis">
+    <h3>MACHINERY</h3>
+    <p class="where">in code, as settings meet it</p>
+    <dl>
+      <dt class="k-runtime">runtime</dt><dd>a program Agister drives through its wrapper; a runtime mapping names one</dd>
+      <dt class="k-plain">runtime facts</dt><dd>what a runtime can do; resolve refuses a step that needs what its runtime cannot do</dd>
+    </dl>
+  </div>
+</div>
+</section>
+
+<section>
+<h2 id="names">What a workflow names</h2>
+<p>Documents name each other by kind and name, fixed in settings, so they
+resolve without a run. A workflow composes steps and other workflows. A step
+binds a process to an agent; nothing but a step chooses an agent. Bash is a
+runtime, planned like any other: its agent names only the runtime, and its
+prompt is a script.</p>
+<figure>
+<svg viewBox="0 0 776 286" role="img" aria-label="The documents a workflow names">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#55555E"/>
+    </marker>
+  </defs>
+  <path class="edge" d="M160,152 L218,152"/>
+  <path class="edge" d="M60,130 L60,96 L120,96 L120,128"/>
+  <text class="label" x="40" y="86">child workflow</text>
+  <path class="edge" d="M350,145 L418,90"/>
+  <path class="edge" d="M350,160 L418,226"/>
+  <path class="edge" d="M550,74 L618,30"/>
+  <path class="edge" d="M550,80 L618,75"/>
+  <path class="edge" d="M550,88 L618,121"/>
+  <path class="edge" d="M550,96 L618,166"/>
+  <path class="edge" d="M550,224 L618,180"/>
+  <path class="edge" d="M550,236 L618,242"/>
+  <rect class="box" x="20" y="130" width="140" height="44" rx="5" stroke="#F28DB0"/>
+  <text x="90" y="157" text-anchor="middle">workflow</text>
+  <rect class="box" x="220" y="130" width="130" height="44" rx="5" stroke="#C8A2FF"/>
+  <text x="285" y="157" text-anchor="middle">step</text>
+  <rect class="box" x="420" y="60" width="130" height="44" rx="5" stroke="#8DB8FF"/>
+  <text x="485" y="87" text-anchor="middle">process</text>
+  <rect class="box" x="420" y="210" width="130" height="44" rx="5" stroke="#5FE0BC"/>
+  <text x="485" y="237" text-anchor="middle">agent</text>
+  <rect class="box" x="620" y="10" width="140" height="34" rx="5" stroke="#B4B4C0"/>
+  <text x="690" y="32" text-anchor="middle">prompt</text>
+  <rect class="box" x="620" y="58" width="140" height="34" rx="5" stroke="#B4B4C0"/>
+  <text x="690" y="80" text-anchor="middle">schema</text>
+  <rect class="box" x="620" y="106" width="140" height="34" rx="5" stroke="#B4B4C0"/>
+  <text x="690" y="128" text-anchor="middle">brief form</text>
+  <rect class="box" x="620" y="154" width="140" height="34" rx="5" stroke="#B4B4C0"/>
+  <text x="690" y="176" text-anchor="middle">skill</text>
+  <rect class="box" x="620" y="226" width="140" height="34" rx="5" stroke="#FFC24D"/>
+  <text x="690" y="248" text-anchor="middle">runtime mapping</text>
+</svg>
+<figcaption>A process names its prompt, guidance, output schema and skills; a
+workflow's or a process's text inputs may name brief forms; an agent names its
+runtime mapping and its skills. A child workflow is another workflow:
+references never form a cycle.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2 id="where">Where settings live</h2>
+<p>Each kind has its folder in a layer, and a document is the file named after
+it. Nothing but kind and name joins files across layers.</p>
+<div class="keyed files">
+  <div><b class="k-agent">agent</b><span>agents/&lt;name&gt;.toml</span></div>
+  <div><b class="k-process">process</b><span>processes/&lt;name&gt;.yaml</span></div>
+  <div><b class="k-workflow">workflow</b><span>workflows/&lt;name&gt;.yaml</span></div>
+  <div><b class="k-runtime">runtime mapping</b><span>runtimes/&lt;name&gt;.yaml</span></div>
+  <div><b class="k-plain">brief form</b><span>brief-forms/&lt;name&gt;.yaml</span></div>
+  <div><b class="k-plain">schema</b><span>schemas/&lt;name&gt;.json</span></div>
+  <div><b class="k-plain">prompt</b><span>prompts/&lt;name&gt;.md</span></div>
+  <div><b class="k-plain">skill</b><span>skills/&lt;name&gt;/SKILL.md — not read yet</span></div>
+</div>
+<div class="layers">
+  <ol aria-label="Layers, home first">
+    <li>home<span>~/.agister</span></li>
+    <li>repository<span>.agister at the worktree root, with blocks.yaml</span></li>
+    <li>project<span>the nearest .agister from the launch directory up to the root</span></li>
+  </ol>
+  <ul>
+    <li>applied home first; the nearer wins</li>
+    <li>maps merge by key</li>
+    <li>lists and scalars replace whole</li>
+    <li>nothing unsets</li>
+  </ul>
+</div>
+<p>The launch directory is where the command is launched, or
+<code>--dir</code>; the layers select settings, not the place of work. Each
+layer is over its parent alone, and outside a git worktree only home is read.
+Schemas, prompts and skills are taken whole from the nearest layer. A document
+may name another of its kind in <code>extends</code>: the extended one is
+composed first, the extending one over it.</p>
+<p class="callout">The repository's <code>blocks.yaml</code> names documents it
+refuses, each with a reason; whatever depends on a blocked document is refused,
+naming the block.</p>
+</section>
+
+<section>
+<h2 id="resolve">From files to definitions</h2>
+<p>Resolve takes a request: a document by kind and name, such as a workflow
+with its parameters, or a step given as a process and an agent, which resolves
+as a workflow of that one step. Resolve is the gate before a run: what resolves
+may run; what does not never reaches core and leaves no run.</p>
+<figure>
+<svg viewBox="0 0 776 264" role="img" aria-label="What flows from files to core and check, through the composition">
+  <path class="edge" d="M94,108 L122,108"/>
+  <path class="edge" d="M244,108 L272,108"/>
+  <path class="edge" d="M404,108 L432,108"/>
+  <path class="edge" d="M584,70 L622,62"/>
+  <path class="edge" d="M584,128 L622,134"/>
+  <path class="edge" d="M509,186 L509,158"/>
+  <path class="edge" d="M184,136 L184,238 L694,238 L694,158"/>
+  <path class="edge" d="M339,146 L339,254 L734,254 L734,158"/>
+  <text class="label" x="516" y="175">runtime facts</text>
+  <text class="label" x="194" y="233">list names</text>
+  <text class="label" x="349" y="249">fields, each with its source</text>
+  <rect class="box" x="4" y="80" width="90" height="56" rx="5" stroke="#3C3C43"/>
+  <text x="49" y="113" text-anchor="middle">files</text>
+  <rect class="box" x="124" y="80" width="120" height="56" rx="5" stroke="#B4B4C0"/>
+  <text x="184" y="105" text-anchor="middle">layout</text>
+  <text class="sub" x="184" y="121" text-anchor="middle">kind, name → file</text>
+  <rect class="box" x="274" y="70" width="130" height="76" rx="5" stroke="#B4B4C0"/>
+  <text x="339" y="98" text-anchor="middle">documents</text>
+  <text class="sub" x="339" y="115" text-anchor="middle">format</text>
+  <text class="sub" x="339" y="130" text-anchor="middle">layering · kinds</text>
+  <rect class="box" x="434" y="40" width="150" height="116" rx="5" stroke="#FF8F6B"/>
+  <text x="509" y="78" text-anchor="middle">resolve</text>
+  <text class="sub" x="509" y="96" text-anchor="middle">references · blocks</text>
+  <text class="sub" x="509" y="111" text-anchor="middle">boundaries · bindings</text>
+  <text class="sub" x="509" y="126" text-anchor="middle">each step's plan</text>
+  <rect class="box" x="624" y="40" width="140" height="44" rx="5" stroke="#F5E6B0"/>
+  <text x="694" y="67" text-anchor="middle">core</text>
+  <rect class="box" x="624" y="112" width="140" height="44" rx="5" stroke="#3C3C43"/>
+  <text x="694" y="139" text-anchor="middle">check</text>
+  <rect class="box" x="434" y="186" width="150" height="36" rx="5" stroke="#FFC24D"/>
+  <text x="509" y="209" text-anchor="middle">runtime wrappers</text>
+</svg>
+<figcaption>An arrow is what flows, and the composition carries every one: no
+settings package imports another. Resolve plans each step from its process's
+permissions and its agent's mapping. <code>check</code> is handed resolve and
+resolves every document, by the names layout lists. Runtime facts and the
+document source are resolve's ports; the composition answers runtime facts from
+the wrappers.</figcaption>
+</figure>
+<div class="keyed refusals">
+  <div><b class="k-rule">a document</b><span>A problem in a document refuses only what depends on it, naming the chain to the document at fault.</span></div>
+  <div><b class="k-rule">no document</b><span>A problem of no document refuses every request.</span></div>
+  <div><b class="k-rule">a plan</b><span>A plan gives every required permission or refuses; what it grants beyond what the process allows is a warning.</span></div>
+  <div><b class="k-rule">a runtime</b><span>A step that needs what its runtime cannot do refuses, with the request that holds it, in branches a run may not take too.</span></div>
+</div>
+</section>
+
+<section>
+<h2 id="parts">The parts</h2>
+<div class="parts">
+  <div class="head"><span>Package</span><span>Owns</span><span>Ports</span></div>
+  <div class="row"><span class="pkg">settings/layout</span><span>where settings live; a kind and name to a file; lists names</span><span class="out">filesystem; worktree root</span></div>
+  <div class="row"><span class="pkg">settings/documents</span><span>bytes to typed definitions with each field's source: format, layering, kinds</span><span class="out">none: pure</span></div>
+  <div class="row"><span class="pkg">settings/resolve</span><span>a request to definitions or a refusal naming the chain</span><span class="out">document source; runtime facts</span></div>
+  <div class="row"><span class="pkg">settings/check</span><span>check, every problem and what it refuses, and inspect, with each field's source</span><span class="out">resolve; list names; a document's fields, each with its source</span></div>
+  <div class="row"><span class="pkg">settings/home</span><span>install into home and restore: only home's settings, on a broken home too; every write can be undone</span><span class="out">filesystem writes; clock</span></div>
+</div>
+<p>No settings package imports another; the composition connects them. Core
+takes the resolved workflow and every step's process, agent, runtime mapping
+and permission plan, and never reads a settings file.</p>
+</section>
+
+<section>
+<h2 id="run">What a run does with them</h2>
+<p>A workflow's items run in order: a step is one call; a parallel calls its
+steps and workflows at once; a branch runs the first arm whose condition holds,
+else its default; a repeat runs its body at least once, binds its next state,
+and stops when <code>until</code> holds or after <code>max</code> passes; a
+workflow item runs another workflow as a child run. Home's
+<code>code_review</code> runs its tests lens as the workflow
+<code>tests_debate</code>: one model drafts the review, another critiques it,
+and the writer revises in its own session until the critique converges or two
+passes have run; only the last review reaches the judge. Whatever this Agister does
+not run yet, <code>agister check</code> refuses as <code>agister run</code>
+would, before anything runs. The
+<a href="../run-architecture/index.html">run architecture</a> follows a run
+from the command to its record.</p>
+</section>
+</main>
+</div>
+</div>
+</body>
+</html>

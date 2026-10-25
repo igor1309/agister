@@ -1,0 +1,5 @@
+schema = "agister.agent/v1alpha1"
+runtime = "claude-code"
+model = "sonnet"
+model_family = "anthropic"
+effort = "high"
